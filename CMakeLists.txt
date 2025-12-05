@@ -14,4 +14,8 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(hidapi)
 add_executable(nlctl main.cc)
-target_link_libraries(nlctl PRIVATE hidapi)
+if (UNIX)
+    target_link_libraries(nlctl PRIVATE hidapi::hidraw)
+else()
+    target_link_libraries(nlctl PRIVATE hidapi)
+endif()
