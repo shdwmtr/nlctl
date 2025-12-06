@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include <string.h>
+#ifdef _WIN32
 #include <windows.h>
+#define SLEEP_MS(ms) Sleep(ms)
+#else
+#include <unistd.h>
+#define SLEEP_MS(ms) usleep((ms) * 1000)
+#endif
 #include <hidapi.h>
 #include <math.h>
 
@@ -17,7 +23,7 @@ int send_command(hid_device* dev, unsigned char cmd, unsigned char* data, int da
     buf[3] = data_len & 0xFF;
     if (data) memcpy(&buf[4], data, data_len);
     hid_write(dev, buf, 65);
-    Sleep(100);
+    SLEEP_MS(100);
     int res = hid_read(dev, buf, 64);
     if (response) memcpy(response, buf, 64);
     return res;
@@ -52,7 +58,7 @@ void set_color(hid_device* dev, int zones, int r, int g, int b)
     memcpy(&buf[1], &rgb_data[124], 38);
     hid_write(dev, buf, 65);
 
-    Sleep(100);
+    SLEEP_MS(100);
     hid_read(dev, buf, 64);
 }
 
@@ -89,7 +95,7 @@ void set_colors_array(hid_device* dev, int zones, unsigned char* colors)
     memcpy(&buf[1], &rgb_data[124], 38);
     hid_write(dev, buf, 65);
 
-    Sleep(100);
+    SLEEP_MS(100);
     hid_read(dev, buf, 64);
 }
 
@@ -101,7 +107,7 @@ void animate_breathing(hid_device* dev, int zones, int r, int g, int b, int dura
     for (int frame = 0; frame < steps; frame++) {
         double brightness = (sin(frame * 2 * PI / steps) + 1) / 2;
         set_color(dev, zones, (int)(r * brightness), (int)(g * brightness), (int)(b * brightness));
-        Sleep(delay);
+        SLEEP_MS(delay);
     }
 }
 
@@ -120,7 +126,7 @@ void animate_wave(hid_device* dev, int zones, int r, int g, int b, int duration_
             colors[i * 3 + 2] = (int)(b * brightness);
         }
         set_colors_array(dev, zones, colors);
-        Sleep(delay);
+        SLEEP_MS(delay);
     }
 }
 
