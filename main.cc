@@ -1,128 +1,178 @@
-#ifdef __linux__
-#include <hidapi/hidapi.h>
-#else
+#include <stdio.h>
+#include <string.h>
+#include <windows.h>
 #include <hidapi.h>
-#endif
-#include <iostream>
-#include <iomanip>
-#include <cmath>
-#include <thread>
-#include <chrono>
-#include <cstring>
+#include <math.h>
 
-struct RGB
-{
-    unsigned char r, g, b;
-};
+#define VID 0x37FA
+#define PID 0x8202
+#define PI 3.14159265
 
-RGB hsv_to_rgb(float h, float s, float v)
+int send_command(hid_device* dev, unsigned char cmd, unsigned char* data, int data_len, unsigned char* response)
 {
-    float c = v * s;
-    float x = c * (1 - fabs(fmod(h / 60.0f, 2.0f) - 1.0f));
-    float m = v - c;
-    int sector = (int)(h / 60.0f) % 6;
-    float r6[6] = { c, x, 0, 0, x, c };
-    float g6[6] = { x, c, c, x, 0, 0 };
-    float b6[6] = { 0, 0, x, c, c, x };
-    float r = r6[sector];
-    float g = g6[sector];
-    float b = b6[sector];
-    return { (unsigned char)((r + m) * 255), (unsigned char)((g + m) * 255), (unsigned char)((b + m) * 255) };
+    unsigned char buf[65] = { 0 };
+    buf[0] = 0x00;
+    buf[1] = cmd;
+    buf[2] = (data_len >> 8) & 0xFF;
+    buf[3] = data_len & 0xFF;
+    if (data) memcpy(&buf[4], data, data_len);
+    hid_write(dev, buf, 65);
+    Sleep(100);
+    int res = hid_read(dev, buf, 64);
+    if (response) memcpy(response, buf, 64);
+    return res;
 }
 
-void set_colors(hid_device* dev, int num_zones, RGB* colors)
+void set_color(hid_device* dev, int zones, int r, int g, int b)
 {
-    int total_rgb_bytes = num_zones * 3;
-    int zones_first = 20;
-    unsigned char packet1[65] = { 0 };
-    packet1[1] = 0x02;
-    packet1[2] = (total_rgb_bytes >> 8) & 0xFF;
-    packet1[3] = total_rgb_bytes & 0xFF;
-    for (int i = 0; i < zones_first; i++) {
-        packet1[4 + i * 3] = colors[i].r;
-        packet1[4 + i * 3 + 1] = colors[i].g;
-        packet1[4 + i * 3 + 2] = colors[i].b;
+    unsigned char rgb_data[256], buf[65];
+    int len = zones * 3;
+
+    for (int i = 0; i < zones; i++) {
+        rgb_data[i * 3] = (i < 20) ? g : r;
+        rgb_data[i * 3 + 1] = (i < 20) ? r : b;
+        rgb_data[i * 3 + 2] = (i < 20) ? b : g;
     }
-    hid_write(dev, packet1, 65);
-    int zones_sent = zones_first;
-    while (zones_sent < num_zones) {
-        int zones_this_packet = std::min(21, num_zones - zones_sent);
-        unsigned char packet[65] = { 0 };
-        for (int i = 0; i < zones_this_packet; i++) {
-            packet[1 + i * 3] = colors[zones_sent + i].r;
-            packet[1 + i * 3 + 1] = colors[zones_sent + i].g;
-            packet[1 + i * 3 + 2] = colors[zones_sent + i].b;
+
+    memset(buf, 0, 65);
+    buf[0] = 0x00;
+    buf[1] = 0x02;
+    buf[2] = (len >> 8) & 0xFF;
+    buf[3] = len & 0xFF;
+    memcpy(&buf[4], rgb_data, 60);
+    hid_write(dev, buf, 65);
+
+    memset(buf, 0, 65);
+    buf[0] = 0x00;
+    memcpy(&buf[1], &rgb_data[60], 64);
+    hid_write(dev, buf, 65);
+
+    memset(buf, 0, 65);
+    buf[0] = 0x00;
+    memcpy(&buf[1], &rgb_data[124], 38);
+    hid_write(dev, buf, 65);
+
+    Sleep(100);
+    hid_read(dev, buf, 64);
+}
+
+void set_colors_array(hid_device* dev, int zones, unsigned char* colors)
+{
+    unsigned char rgb_data[256], buf[65];
+    int len = zones * 3;
+
+    for (int i = 0; i < zones; i++) {
+        int r = colors[i * 3];
+        int g = colors[i * 3 + 1];
+        int b = colors[i * 3 + 2];
+
+        rgb_data[i * 3] = (i < 20) ? g : r;
+        rgb_data[i * 3 + 1] = (i < 20) ? r : b;
+        rgb_data[i * 3 + 2] = (i < 20) ? b : g;
+    }
+
+    memset(buf, 0, 65);
+    buf[0] = 0x00;
+    buf[1] = 0x02;
+    buf[2] = (len >> 8) & 0xFF;
+    buf[3] = len & 0xFF;
+    memcpy(&buf[4], rgb_data, 60);
+    hid_write(dev, buf, 65);
+
+    memset(buf, 0, 65);
+    buf[0] = 0x00;
+    memcpy(&buf[1], &rgb_data[60], 64);
+    hid_write(dev, buf, 65);
+
+    memset(buf, 0, 65);
+    buf[0] = 0x00;
+    memcpy(&buf[1], &rgb_data[124], 38);
+    hid_write(dev, buf, 65);
+
+    Sleep(100);
+    hid_read(dev, buf, 64);
+}
+
+void animate_breathing(hid_device* dev, int zones, int r, int g, int b, int duration_ms)
+{
+    int steps = 500;
+    int delay = duration_ms / steps;
+
+    for (int frame = 0; frame < steps; frame++) {
+        double brightness = (sin(frame * 2 * PI / steps) + 1) / 2;
+        set_color(dev, zones, (int)(r * brightness), (int)(g * brightness), (int)(b * brightness));
+        Sleep(delay);
+    }
+}
+
+void animate_wave(hid_device* dev, int zones, int r, int g, int b, int duration_ms)
+{
+    unsigned char colors[256];
+    int frames = 50;
+    int delay = duration_ms / frames;
+
+    for (int frame = 0; frame < frames; frame++) {
+        for (int i = 0; i < zones; i++) {
+            double offset = (i + frame) * 2 * PI / zones;
+            double brightness = (sin(offset) + 1) / 2;
+            colors[i * 3] = (int)(r * brightness);
+            colors[i * 3 + 1] = (int)(g * brightness);
+            colors[i * 3 + 2] = (int)(b * brightness);
         }
-        hid_write(dev, packet, 65);
-        zones_sent += zones_this_packet;
+        set_colors_array(dev, zones, colors);
+        Sleep(delay);
     }
-    unsigned char response[256];
-    hid_read_timeout(dev, response, sizeof(response), 100);
 }
 
 int main(int argc, char* argv[])
 {
-    int brightness = 255;
-    bool enabled = true;
+    int r = 255, g = 255, b = 255;
+    int do_breathing = 0, do_wave = 0;
 
+    // Parse arguments
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--brightness") == 0 && i + 1 < argc) {
-            brightness = std::atoi(argv[++i]);
-            brightness = std::max(0, std::min(255, brightness));
-        } else if (strcmp(argv[i], "--enabled") == 0 && i + 1 < argc) {
-            enabled = std::atoi(argv[++i]) != 0;
+        if (strcmp(argv[i], "--color") == 0 && i + 1 < argc) {
+            if (sscanf(argv[i + 1], "%d,%d,%d", &r, &g, &b) != 3) {
+                printf("Invalid color format. Use: --color r,g,b (e.g., --color 255,0,0)\n");
+                return 1;
+            }
+            i++;
+        } else if (strcmp(argv[i], "--breathing") == 0) {
+            do_breathing = 1;
+        } else if (strcmp(argv[i], "--wave") == 0) {
+            do_wave = 1;
         }
     }
 
-    if (hid_init() < 0) return 1;
-    hid_device* dev = hid_open(0x37FA, 0x8202, nullptr);
+    hid_device* dev = hid_open(VID, PID, NULL);
     if (!dev) {
-        std::cerr << "Failed to open device\n";
-        hid_exit();
+        printf("Failed to open device\n");
         return 1;
     }
-    std::cout << "Device opened\n";
 
-    unsigned char get_len[65] = { 0 };
-    get_len[1] = 0x03;
-    hid_write(dev, get_len, 65);
-    unsigned char response[256] = { 0 };
-    hid_read_timeout(dev, response, sizeof(response), 1000);
-    int num_zones = response[4];
-    std::cout << "Number of zones: " << num_zones << "\n";
+    hid_set_nonblocking(dev, 1);
 
-    unsigned char set_on[65] = { 0 };
-    set_on[1] = 0x07;
-    set_on[2] = 0x00;
-    set_on[3] = 0x01;
-    set_on[4] = enabled ? 0x01 : 0x00;
-    hid_write(dev, set_on, 65);
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    hid_read_timeout(dev, response, sizeof(response), 1000);
-    std::cout << "Enabled set to: " << (enabled ? "on" : "off") << "\n";
+    unsigned char response[64] = { 0 }, on = 1, brightness = 255;
+    send_command(dev, 0x03, NULL, 0, response);
+    int zones = response[4];
+    printf("Number of LED's in strip: %d\n", zones);
 
-    unsigned char set_brightness[65] = { 0 };
-    set_brightness[1] = 0x09;
-    set_brightness[2] = 0x00;
-    set_brightness[3] = 0x01;
-    set_brightness[4] = brightness;
-    hid_write(dev, set_brightness, 65);
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    hid_read_timeout(dev, response, sizeof(response), 1000);
-    std::cout << "Brightness set to: " << brightness << "\n";
+    send_command(dev, 0x07, &on, 1, NULL);
+    send_command(dev, 0x09, &brightness, 1, NULL);
 
-    std::cout << "Starting rainbow cycle (Ctrl+C to stop)...\n";
-    RGB colors[num_zones];
-    float hue_offset = 0;
-    while (true) {
-        for (int i = 0; i < num_zones; i++) {
-            float hue = fmod(hue_offset + (i * 360.0 / num_zones), 360.0);
-            colors[i] = hsv_to_rgb(hue, 1.0, 1.0);
+    if (do_breathing) {
+        printf("Running breathing animation with color (%d,%d,%d) (Ctrl+C to stop)...\n", r, g, b);
+        while (1) {
+            animate_breathing(dev, zones, r, g, b, 3000);
         }
-        set_colors(dev, num_zones, colors);
-        hue_offset += 5.0;
-        if (hue_offset >= 360) hue_offset -= 360;
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    } else if (do_wave) {
+        printf("Running wave animation with color (%d,%d,%d) (Ctrl+C to stop)...\n", r, g, b);
+        while (1) {
+            animate_wave(dev, zones, r, g, b, 2000);
+        }
+    } else {
+        printf("Setting solid color (%d,%d,%d)\n", r, g, b);
+        set_color(dev, zones, r, g, b);
     }
 
     hid_close(dev);
