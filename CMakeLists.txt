@@ -18,7 +18,7 @@ add_executable(nlctl
     src/animation_base.cpp
     src/color.cpp
     src/hid_device.cpp
-    src/x11.cpp
+    src/capture_impl.cpp
     src/zone.cpp
 )
 

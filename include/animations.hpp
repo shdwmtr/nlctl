@@ -1,6 +1,6 @@
 #pragma once
 #include "animation_base.hpp"
-#include "x11.hpp"
+#include "capture.hpp"
 #include "zone.hpp"
 #include <cmath>
 #include <iostream>

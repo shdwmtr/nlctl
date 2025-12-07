@@ -5,6 +5,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <thread>
+#include <array>
 
 namespace led
 {
