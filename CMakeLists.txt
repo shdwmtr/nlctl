@@ -18,10 +18,12 @@ add_executable(nlctl
     src/animation_base.cpp
     src/color.cpp
     src/hid_device.cpp
+    src/x11.cpp
+    src/zone.cpp
 )
 
 if (UNIX)
-    target_link_libraries(nlctl PRIVATE hidapi::hidraw)
+    target_link_libraries(nlctl PRIVATE hidapi::hidraw X11 Xext)
 else()
     target_link_libraries(nlctl PRIVATE hidapi)
 endif()

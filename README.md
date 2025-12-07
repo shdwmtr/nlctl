@@ -10,6 +10,11 @@ This software is not only bulky and filled with paid services, but it also doesn
 
 This project addresses this discrepancy.
 
+## Extensibility
+
+
+
+
 ## License
 
 This project is available under the MIT license, for more information see the LICENSE file.
