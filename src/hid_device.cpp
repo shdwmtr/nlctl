@@ -111,9 +111,6 @@ void hid_device_wrapper::write_rgb_data(const std::vector<uint8_t>& rgb_data)
         std::memcpy(&buffer[1], &rgb_data[124], std::min(size_t(38), rgb_data.size() - 124));
     }
     hid_write(device_, buffer.data(), buffer.size());
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    hid_read(device_, buffer.data(), k_read_size);
 }
 
 } // namespace led

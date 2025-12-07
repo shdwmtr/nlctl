@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
                 run_mode = mode::wave;
             } else if (std::strcmp(argv[i], "--rainbow") == 0) {
                 run_mode = mode::rainbow;
-            } else if (std::strcmp(argv[i], "--screen-zones") == 0) {
+            } else if (std::strcmp(argv[i], "--reactive") == 0) {
                 run_mode = mode::screen_zones;
             }
         }
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
                           << ") (Ctrl+C to stop)...\n";
                 anim = std::make_unique<led::screen_zone_animation>(device, bottom_zones, left_zones, top_zones, right_zones,
                                                                     0.9f, // 50% screen capture
-                                                                    50,   // 50px zone depth
+                                                                    10,   // 50px zone depth
                                                                     60);  // 30 fps
                 while (true)
                     anim->run();

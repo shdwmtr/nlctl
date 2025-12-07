@@ -31,6 +31,11 @@ class ScreenCapture
         return ximg_ ? ximg_->bits_per_pixel / 8 : 4;
     }
 
+    Display* get_display() const
+    {
+        return dpy_;
+    }
+
   private:
     Display* dpy_;
     Window root_;

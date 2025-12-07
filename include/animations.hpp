@@ -163,10 +163,8 @@ class screen_zone_animation : public animation_base
 
     void run() override
     {
-        auto frame_start = std::chrono::high_resolution_clock::now();
-
-        ScreenCapture cap;
-        ZoneAnalyzer analyzer(zone_depth_);
+        static ScreenCapture cap;
+        static ZoneAnalyzer analyzer(zone_depth_);
         auto delay = std::chrono::milliseconds(1000 / fps_);
 
         if (!cap.capture(capture_percent_)) {
@@ -189,11 +187,6 @@ class screen_zone_animation : public animation_base
         }
 
         device_.set_colors(colors);
-
-        auto frame_end = std::chrono::high_resolution_clock::now();
-        auto frame_time = std::chrono::duration_cast<std::chrono::milliseconds>(frame_end - frame_start);
-        std::cout << "Frame time: " << frame_time.count() << "ms\n";
-
         std::this_thread::sleep_for(delay);
     }
 };

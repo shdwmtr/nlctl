@@ -23,7 +23,7 @@ add_executable(nlctl
 )
 
 if (UNIX)
-    target_link_libraries(nlctl PRIVATE hidapi::hidraw X11 Xext)
+    target_link_libraries(nlctl PRIVATE hidapi::hidraw X11 Xext GL)
 else()
     target_link_libraries(nlctl PRIVATE hidapi)
 endif()
