@@ -15,7 +15,7 @@ FetchContent_Declare(
 include_directories()
 
 FetchContent_MakeAvailable(hidapi)
-add_executable(nlctl main.cc)
+add_executable(nlctl main.cpp animation_base.cpp color.cpp hid_device.cpp)
 if (UNIX)
     target_link_libraries(nlctl PRIVATE hidapi::hidraw)
 else()
