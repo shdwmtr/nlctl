@@ -1,6 +1,5 @@
 #pragma once
 #include "color.hpp"
-#include <array>
 #include <cstdint>
 #include <vector>
 

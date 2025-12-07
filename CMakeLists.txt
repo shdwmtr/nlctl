@@ -5,17 +5,21 @@ set(CMAKE_CXX_STANDARD 20)
 set(BUILD_SHARED_LIBS OFF)
 
 include(FetchContent)
-
 FetchContent_Declare(
     hidapi
     GIT_REPOSITORY https://github.com/libusb/hidapi
     GIT_TAG master
 )
-
-include_directories()
-
 FetchContent_MakeAvailable(hidapi)
-add_executable(nlctl main.cpp animation_base.cpp color.cpp hid_device.cpp)
+
+include_directories(include)
+add_executable(nlctl
+    src/main.cpp
+    src/animation_base.cpp
+    src/color.cpp
+    src/hid_device.cpp
+)
+
 if (UNIX)
     target_link_libraries(nlctl PRIVATE hidapi::hidraw)
 else()

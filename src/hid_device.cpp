@@ -9,11 +9,15 @@
 namespace led
 {
 
+/**
+ * Open the device from the vendor ID and product ID.
+ */
 hid_device_wrapper::hid_device_wrapper(uint16_t vid, uint16_t pid) : device_(hid_open(vid, pid, nullptr)), zone_count_(0)
 {
     if (!device_) {
         throw std::runtime_error("Failed to open HID device");
     }
+    /** use non blocking IO */
     hid_set_nonblocking(device_, 1);
     zone_count_ = query_zone_count();
 }
